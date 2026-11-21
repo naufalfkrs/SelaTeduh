@@ -1,0 +1,144 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/*
+ | Design tokens — diambil dari frame "Design System" di Figma SelaTeduh.
+ | Primary #355442 · Secondary #E8EEE4 · Tertiary #E9C5AD · Neutral #292F2A
+ | Headline: Newsreader · Body & Label: Plus Jakarta Sans
+ */
+@theme {
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Newsreader', 'Lora', Georgia, serif;
+
+    --color-primary: #355442;
+    --color-primary-dark: #2a4335;
+    --color-primary-soft: #d6e2d3;
+
+    --color-secondary: #e8eee4;
+    --color-secondary-dark: #dbe4d5;
+
+    --color-tertiary: #e9c5ad;
+    --color-tertiary-soft: #f6e8dd;
+    --color-tertiary-dark: #8a5a3c;
+
+    --color-ink: #292f2a;
+    --color-muted: #5b655d;
+    --color-subtle: #8a948b;
+
+    --color-canvas: #f3f6f0;
+    --color-surface: #ffffff;
+    --color-line: #dfe6da;
+
+    --color-danger: #b3261e;
+
+    --radius-card: 1.25rem;
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-canvas font-sans text-ink antialiased;
+    }
+
+    ::selection {
+        @apply bg-primary text-white;
+    }
+}
+
+@layer components {
+    .container-page {
+        @apply mx-auto w-full max-w-[1120px] px-4 sm:px-6 lg:px-8;
+    }
+
+    .eyebrow {
+        @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted;
+    }
+
+    .heading-xl {
+        @apply font-serif text-[40px] leading-[1.08] font-normal tracking-[-0.01em] text-ink sm:text-[52px];
+    }
+
+    .heading-lg {
+        @apply font-serif text-3xl leading-tight font-normal text-ink sm:text-[34px];
+    }
+
+    .heading-md {
+        @apply font-serif text-2xl leading-snug font-normal text-ink;
+    }
+
+    .card {
+        @apply rounded-[var(--radius-card)] border border-line bg-surface;
+    }
+
+    .card-soft {
+        @apply rounded-[var(--radius-card)] bg-secondary;
+    }
+
+    .btn {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
+    }
+
+    .btn-primary {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full py-2.5 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary px-5 bg-primary text-white hover:bg-primary-dark;
+    }
+
+    .btn-secondary {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full py-2.5 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary px-5 bg-secondary text-primary hover:bg-secondary-dark;
+    }
+
+    .btn-outline {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full py-2.5 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary px-5 border border-line bg-white text-primary hover:bg-secondary;
+    }
+
+    .btn-ghost {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full py-2.5 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary px-3 text-muted hover:text-ink;
+    }
+
+    .chip {
+        @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+    }
+
+    .chip-soft {
+        @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-secondary text-primary;
+    }
+
+    .chip-peach {
+        @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-tertiary-soft text-tertiary-dark;
+    }
+
+    .pill-tab {
+        @apply inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition;
+    }
+
+    .pill-tab-active {
+        @apply bg-primary text-white;
+    }
+
+    .pill-tab-idle {
+        @apply bg-white text-muted ring-1 ring-line hover:text-ink;
+    }
+
+    .field {
+        @apply w-full rounded-2xl border border-line bg-canvas px-4 py-3 text-sm text-ink placeholder:text-subtle focus:border-primary focus:bg-white focus:outline-none;
+    }
+
+    .link-arrow {
+        @apply inline-flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline underline-offset-4;
+    }
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* Lingkaran napas — animasi lembut */
+.breath-ring {
+    transition: transform 1s ease-in-out;
+}
