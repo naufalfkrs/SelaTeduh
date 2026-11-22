@@ -36,9 +36,16 @@ class HomeController extends Controller
             ->take(3)
             ->get();
 
+        // Check-in terakhir hari ini: Beranda cukup sekali check-in, sisanya di halaman Mood
+        $todayLog = $this->scopeOwner(MoodLog::query())
+            ->whereDate('logged_date', Carbon::today())
+            ->orderByDesc('logged_at')
+            ->orderByDesc('created_at')
+            ->first();
+
         $articleCount = Article::count();
         $recordedDays = $lastSevenDays->whereNotNull('mood')->count();
 
-        return view('home', compact('lastSevenDays', 'featuredArticles', 'articleCount', 'recordedDays'));
+        return view('home', compact('lastSevenDays', 'featuredArticles', 'articleCount', 'recordedDays', 'todayLog'));
     }
 }

@@ -18,7 +18,7 @@
                  'link' => 'Akses Konseling Pulih', 'href' => 'https://yayasanpulih.org'],
                 ['tag' => 'Teman Sebaya', 'icon' => 'users', 'title' => 'Konselor Sebaya Berlisensi',
                  'desc' => 'Sesi bercerita dan mendengarkan tanpa stigma bersama pemuda terlatih untuk mendampingi masa-masa sulitmu.',
-                 'link' => 'Daftar Sesi Berjenjang', 'href' => route('resource.index').'#bantuan'],
+                 'link' => 'Cara menemukan konselor sebaya', 'href' => route('page.help').'#sebaya'],
             ];
         @endphp
 
@@ -43,8 +43,10 @@
             <x-icon name="help" class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span><strong class="text-ink">Catatan Non-Darurat:</strong> SelaTeduh adalah ruang jeda dan edukasi diri. Untuk situasi krisis atau darurat medis, segera hubungi layanan kesehatan terdekat atau orang dewasa yang kamu percaya.</span>
         </p>
-        <a href="{{ route('resource.index') }}#bantuan" class="btn-primary shrink-0">
-            Pelajari Panduan Mencari Bantuan <x-icon name="arrow-right" class="h-3.5 w-3.5" />
-        </a>
+        @unless (request()->routeIs('page.help'))
+            <a href="{{ route('page.help') }}" class="btn-primary shrink-0">
+                Pelajari Panduan Mencari Bantuan <x-icon name="arrow-right" class="h-3.5 w-3.5" />
+            </a>
+        @endunless
     </div>
 </div>

@@ -46,7 +46,7 @@
             </nav>
 
             <div class="flex items-center gap-2">
-                <a href="{{ route('resource.index') }}#bantuan"
+                <a href="{{ route('page.help') }}"
                    class="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-medium text-primary transition hover:bg-secondary">
                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
                     Butuh bantuan?
@@ -98,7 +98,7 @@
                         {{ $item['label'] }}
                     </a>
                 @endforeach
-                <a href="{{ route('resource.index') }}#bantuan" class="rounded-xl px-4 py-2.5 text-sm font-medium text-primary hover:bg-secondary">
+                <a href="{{ route('page.help') }}" class="rounded-xl px-4 py-2.5 text-sm font-medium text-primary hover:bg-secondary">
                     Butuh bantuan?
                 </a>
             </div>
@@ -137,10 +137,11 @@
 
                 @php
                     $footerCols = [
-                        'Tentang'   => [['Tentang SelaTeduh', route('home')], ['Filosofi Kami', route('home').'#filosofi'], ['Panduan Ruang', route('resource.index')]],
-                        'Dukungan'  => [['Sumber Bantuan', route('resource.index').'#bantuan'], ['Kontak Darurat', route('resource.index').'#bantuan'], ['Teman Sebaya', route('resource.index').'#bantuan']],
-                        'Etika'     => [['Privasi & Etika', route('journal.index').'#privasi'], ['Keamanan Data', route('journal.index').'#privasi'], ['Nilai Bersama', route('home').'#filosofi']],
-                        'Terhubung' => [['Kontak Kami', 'mailto:halo@selateduh.id'], ['Surat Redaksi', route('resource.index')], ['Buletin Bulanan', route('resource.index')]],
+                        // Setiap tautan menuju halaman/bagian yang berbeda dan benar-benar ada
+                        'Tentang'    => [['Tentang SelaTeduh', route('page.about')], ['Filosofi Kami', route('page.about').'#filosofi'], ['Nilai Bersama', route('page.about').'#nilai']],
+                        'Dukungan'   => [['Panduan Mencari Bantuan', route('page.help')], ['Kontak Darurat', route('page.help').'#darurat'], ['Teman Sebaya', route('page.help').'#sebaya']],
+                        'Etika'      => [['Privasi & Etika', route('page.privacy')], ['Keamanan Data', route('page.privacy').'#keamanan'], ['Batasan Layanan', route('page.privacy').'#batasan']],
+                        'Ruang Jeda' => [['Latihan Napas', route('exercise.index')], ['Jurnal Refleksi', route('journal.index')], ['Catatan Mood', route('mood.index')], ['Perpustakaan Rasa', route('resource.index')]],
                     ];
                 @endphp
 
@@ -161,7 +162,7 @@
                 <p>
                     <strong class="block text-ink">Catatan Penting Pendampingan</strong>
                     SelaTeduh dihadirkan sebagai kawan refleksi mandiri dan sarana penenang pikiran, bukan pengganti penanganan medis, diagnosis psikologis, psikiatris, maupun terapi profesional. Jika kamu atau temanmu tengah berada dalam situasi krisis emosional mendesak, silakan segera menghubungi fasilitas kesehatan terdekat atau mengakses daftar
-                    <a href="{{ route('resource.index') }}#bantuan" class="font-semibold text-primary underline underline-offset-2">Sumber Bantuan</a> yang tersedia.
+                    <a href="{{ route('page.help') }}#darurat" class="font-semibold text-primary underline underline-offset-2">Kontak Darurat</a> yang tersedia.
                 </p>
             </div>
         </div>

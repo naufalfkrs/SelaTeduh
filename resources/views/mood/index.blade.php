@@ -48,7 +48,23 @@
                             ? this.selectedTriggers.filter(i => i !== item)
                             : [...this.selectedTriggers, item];
                     },
-                    resetForm() { this.selectedMood = 'Tenang'; this.selectedTriggers = []; this.note = ''; }
+                    resetForm() { this.selectedMood = 'Tenang'; this.selectedTriggers = []; this.note = ''; this.customTime = false; },
+
+                    // Waktu pencatatan
+                    clock: '',
+                    customTime: @js(old('logged_at') !== null),
+                    loggedAt: @js(old('logged_at', '')),
+                    maxTime: '',
+                    submitting: false,
+                    pad(n) { return String(n).padStart(2, '0'); },
+                    localInputValue(d) { return `${d.getFullYear()}-${this.pad(d.getMonth() + 1)}-${this.pad(d.getDate())}T${this.pad(d.getHours())}:${this.pad(d.getMinutes())}`; },
+                    tick() {
+                        const now = new Date();
+                        this.clock = `${this.pad(now.getHours())}.${this.pad(now.getMinutes())}`;
+                        this.maxTime = this.localInputValue(now);
+                    },
+                    enableCustomTime() { this.loggedAt = this.maxTime; this.customTime = true; },
+                    init() { this.tick(); setInterval(() => this.tick(), 15000); }
                  }"
                  class="card p-5 sm:p-7">
                 <div class="flex flex-wrap items-start justify-between gap-2">
@@ -59,7 +75,7 @@
                     <span class="chip bg-canvas text-muted ring-1 ring-line">{{ now()->locale('id')->isoFormat('dddd, D MMM YYYY') }}</span>
                 </div>
 
-                <form method="POST" action="{{ route('mood.store') }}" class="mt-5">
+                <form method="POST" action="{{ route('mood.store') }}" class="mt-5" x-on:submit="submitting = true">
                     @csrf
                     <input type="hidden" name="mood" x-bind:value="selectedMood">
                     <template x-for="trigger in selectedTriggers" :key="trigger">
@@ -103,18 +119,31 @@
                     @error('logged_at') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
 
                     <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-                        <label class="flex items-center gap-1.5 text-xs text-subtle">
+                        <!-- Waktu pencatatan: real-time, bisa disesuaikan manual (PRD Modul 2) -->
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-subtle">
                             <x-icon name="clock" class="h-3.5 w-3.5" />
                             <span>Waktu dicatat:</span>
-                            <input type="datetime-local" name="logged_at"
-                                   value="{{ old('logged_at', now()->format('Y-m-dTH:i')) }}"
-                                   max="{{ now()->format('Y-m-dTH:i') }}"
-                                   aria-label="Sesuaikan waktu pencatatan"
-                                   class="rounded-lg border border-line bg-canvas px-2 py-1 text-xs text-ink focus:border-primary focus:outline-none">
-                        </label>
+                            <template x-if="!customTime">
+                                <span class="flex items-center gap-2">
+                                    <span class="font-semibold text-ink" x-text="'Sekarang, ' + clock + ' WIB'"></span>
+                                    <button type="button" x-on:click="enableCustomTime()" class="cursor-pointer text-primary underline underline-offset-2 hover:text-primary-dark">Ubah</button>
+                                </span>
+                            </template>
+                            <template x-if="customTime">
+                                <span class="flex items-center gap-2">
+                                    <input type="datetime-local" name="logged_at" x-model="loggedAt" x-bind:max="maxTime" required
+                                           aria-label="Sesuaikan waktu pencatatan"
+                                           class="rounded-lg border border-line bg-canvas px-2 py-1 text-xs text-ink focus:border-primary focus:outline-none">
+                                    <button type="button" x-on:click="customTime = false" class="cursor-pointer text-muted underline underline-offset-2 hover:text-ink">Pakai waktu sekarang</button>
+                                </span>
+                            </template>
+                        </div>
                         <div class="flex items-center gap-2">
                             <button type="button" x-on:click="resetForm()" class="btn-ghost">Kosongkan</button>
-                            <button type="submit" class="btn-primary"><x-icon name="check" class="h-3.5 w-3.5" /> Simpan Catatan Hari Ini</button>
+                            <button type="submit" class="btn-primary" x-bind:disabled="submitting" x-bind:class="submitting && 'opacity-60'">
+                                <x-icon name="check" class="h-3.5 w-3.5" />
+                                <span x-text="submitting ? 'Menyimpan...' : 'Simpan Catatan'">Simpan Catatan</span>
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -308,7 +337,7 @@
             <div class="rounded-[var(--radius-card)] bg-secondary p-5 text-xs leading-relaxed text-muted">
                 <p class="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-primary"><x-icon name="shield" class="h-3.5 w-3.5" /> Batas Ruang Kami</p>
                 Pola perasaan di SelaTeduh dihadirkan murni sebagai cermin refleksi mandiri, <strong class="text-ink">bukan alat diagnosis klinis atau penegakan psikologis</strong>. Jika rasa resah atau lelah terasa berat dan berkepanjangan, jangan ragu untuk bercerita kepada konselor terdekat atau mengakses
-                <a href="{{ route('resource.index') }}#bantuan" class="font-semibold text-primary underline underline-offset-2">layanan pendampingan resmi</a>.
+                <a href="{{ route('page.help') }}" class="font-semibold text-primary underline underline-offset-2">layanan pendampingan resmi</a>.
             </div>
         </aside>
     </div>

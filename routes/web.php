@@ -5,6 +5,7 @@ use App\Http\Controllers\ExerciseController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\MoodController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\ResourceController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,11 @@ Route::post('/latihan/selesai', [ExerciseController::class, 'complete'])->name('
 // Perpustakaan & Bantuan
 Route::get('/jelajahi', [ResourceController::class, 'index'])->name('resource.index');
 Route::get('/jelajahi/{slug}', [ResourceController::class, 'show'])->name('resource.show');
+
+// Halaman informasi (footer & tombol bantuan)
+Route::get('/tentang', [PageController::class, 'about'])->name('page.about');
+Route::get('/privasi', [PageController::class, 'privacy'])->name('page.privacy');
+Route::get('/bantuan', [PageController::class, 'help'])->name('page.help');
 
 // Akun opsional (untuk menyimpan catatan lintas perangkat)
 Route::middleware('guest')->group(function () {

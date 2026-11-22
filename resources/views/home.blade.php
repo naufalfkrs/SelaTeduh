@@ -65,11 +65,24 @@
                 note: '',
                 saveLocal: false,
                 saving: false,
-                status: null,   // null | 'server' | 'local' | 'error'
+                status: null,   // null | 'error'
                 message: '',
                 storeKey: 'selateduh:mood-lokal',
+                // Check-in cukup sekali: setelah tersimpan, form diganti ringkasan
+                done: @js($todayLog ? ['mood' => $todayLog->mood, 'time' => ($todayLog->logged_at ?? $todayLog->created_at)->format('H.i'), 'where' => 'server'] : null),
+                nowTime() { const d = new Date(); return String(d.getHours()).padStart(2, '0') + '.' + String(d.getMinutes()).padStart(2, '0'); },
                 init() {
                     try { this.saveLocal = localStorage.getItem('selateduh:simpan-peramban') === '1'; } catch (e) {}
+                    // Check-in hari ini yang disimpan di peramban saja
+                    if (!this.done) {
+                        try {
+                            const last = JSON.parse(localStorage.getItem(this.storeKey) || '[]')[0];
+                            if (last && new Date(last.logged_at).toDateString() === new Date().toDateString()) {
+                                const d = new Date(last.logged_at);
+                                this.done = { mood: last.mood, time: String(d.getHours()).padStart(2, '0') + '.' + String(d.getMinutes()).padStart(2, '0'), where: 'local' };
+                            }
+                        } catch (e) {}
+                    }
                     this.$watch('saveLocal', v => { try { localStorage.setItem('selateduh:simpan-peramban', v ? '1' : '0'); } catch (e) {} });
                 },
                 async submit() {
@@ -82,8 +95,7 @@
                             const items = JSON.parse(localStorage.getItem(this.storeKey) || '[]');
                             items.unshift({ mood: this.selectedMood, note: this.note, logged_at: new Date().toISOString() });
                             localStorage.setItem(this.storeKey, JSON.stringify(items.slice(0, 100)));
-                            this.status = 'local';
-                            this.message = 'Tersimpan privat di peramban ini saja. Tidak ada data yang dikirim ke server.';
+                            this.done = { mood: this.selectedMood, time: this.nowTime(), where: 'local' };
                             this.note = '';
                         } catch (e) {
                             this.status = 'error';
@@ -105,8 +117,7 @@
                         });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.message || 'Gagal menyimpan');
-                        this.status = 'server';
-                        this.message = data.message;
+                        this.done = { mood: data.mood, time: this.nowTime(), where: 'server' };
                         this.note = '';
                     } catch (e) {
                         this.status = 'error';
@@ -117,7 +128,25 @@
                 }
              }"
              class="card mx-auto mt-8 max-w-2xl p-6 sm:p-7">
-            <form method="POST" action="{{ route('mood.store') }}" x-on:submit.prevent="submit()">
+            <!-- Sudah check-in hari ini -->
+            <div x-show="done" x-cloak x-transition class="text-center">
+                <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary"><x-icon name="check" class="h-6 w-6" /></span>
+                <p class="mt-4 font-serif text-xl text-ink">Terima kasih sudah menyapa dirimu hari ini.</p>
+                <p class="mt-1 text-sm text-muted">
+                    Kamu mencatat rasa <strong class="text-ink" x-text="done && done.mood"></strong>
+                    pukul <span x-text="done && done.time"></span> WIB
+                    <span x-show="done && done.where === 'local'">(tersimpan di peramban ini saja)</span>.
+                </p>
+                <p class="mx-auto mt-3 max-w-md text-xs leading-relaxed text-subtle">
+                    Ini check-in cepat. Untuk menambah pemicu, catatan, atau mengubah waktunya, buka halaman Catatan Mood.
+                </p>
+                <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+                    <a href="{{ route('mood.index') }}" class="btn-primary">Lihat &amp; lengkapi di Catatan Mood <x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
+                    <button type="button" x-on:click="done = null" class="btn-ghost">Rasaku berubah, catat lagi</button>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('mood.store') }}" x-show="!done" x-on:submit.prevent="submit()">
                 @csrf
                 <input type="hidden" name="mood" x-bind:value="selectedMood">
 
@@ -151,14 +180,9 @@
             </form>
 
             <!-- Status banner (tanpa muat ulang halaman) -->
-            <div x-show="status" x-cloak x-transition role="status"
-                 x-bind:class="status === 'error' ? 'bg-[#FBEFE7] text-[#9A5B36]' : 'bg-secondary text-primary'"
-                 class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl px-4 py-3 text-xs font-medium">
-                <span class="flex items-center gap-2">
-                    <x-icon name="check" class="h-4 w-4" x-show="status !== 'error'" />
-                    <span x-text="message"></span>
-                </span>
-                <a x-show="status === 'server'" href="{{ route('mood.index') }}" class="link-arrow text-xs">Lihat ritme minggu ini <x-icon name="arrow-right" class="h-3 w-3" /></a>
+            <div x-show="status === 'error' && !done" x-cloak x-transition role="alert"
+                 class="mt-4 rounded-2xl bg-[#FBEFE7] px-4 py-3 text-xs font-medium text-[#9A5B36]">
+                <span x-text="message"></span>
             </div>
 
             <p class="mt-5 flex items-start gap-2 text-xs leading-relaxed text-subtle">

@@ -13,6 +13,7 @@ Ruang teduh digital bagi remaja dan anak muda untuk bernapas, mengenali rasa, da
 | Latihan Napas | `/latihan` | Panduan napas interaktif (4-7-8, 4-4-4, 4-4) dengan animasi lingkaran |
 | Jurnal | `/jurnal` | Editor jurnal dengan pemantik, Layar Tenang, auto-save draf tiap 5 detik (LocalStorage), arsip, pencarian, unduh `.txt` |
 | Mood | `/mood` | Catat mood + pemicu + waktu (bisa disesuaikan), ritme minggu ini, narasi lembut otomatis, riwayat dengan edit/hapus |
+| Tentang / Privasi / Bantuan | `/tentang`, `/privasi`, `/bantuan` | Halaman info dari footer: filosofi & nilai, keamanan data & batasan layanan, kontak darurat & teman sebaya |
 
 ## Tanpa login (mode tamu)
 
@@ -51,7 +52,7 @@ Diambil dari frame *Design System* di Figma dan didefinisikan di `resources/css/
 composer install
 cp .env.example .env
 php artisan key:generate
-# atur DB_* di .env (MySQL atau SQLite)
+# atur DB_* di .env (MySQL atau SQLite); zona waktu default Asia/Jakarta (APP_TIMEZONE)
 php artisan migrate --seed   # termasuk ArticleSeeder & akun test@example.com / password
 npm install
 npm run build                # atau: npm run dev
