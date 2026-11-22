@@ -27,6 +27,7 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+            $this->claimGuestData(Auth::id());
 
             return redirect()->intended(route('home'))
                 ->with('success', 'Selamat datang kembali di SelaTeduh.');
@@ -62,6 +63,8 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
+        $request->session()->regenerate();
+        $this->claimGuestData($user->id);
 
         return redirect()->route('home')
             ->with('success', 'Ruang teduhmu sudah siap. Selamat datang, ' . $user->name . '!');

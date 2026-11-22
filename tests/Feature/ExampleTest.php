@@ -37,9 +37,9 @@ class ExampleTest extends TestCase
         $this->actingAs($user)->get('/jurnal')->assertOk()->assertSee('Ruang ceritamu.')->assertSee('Hari ini cukup panjang.');
     }
 
-    public function test_private_pages_redirect_guests(): void
+    public function test_guests_can_open_mood_and_journal_without_login(): void
     {
-        $this->get('/mood')->assertRedirect('/login');
-        $this->get('/jurnal')->assertRedirect('/login');
+        $this->get('/mood')->assertOk()->assertSee('Mode Tamu aktif.');
+        $this->get('/jurnal')->assertOk()->assertSee('Mode Tamu aktif.');
     }
 }

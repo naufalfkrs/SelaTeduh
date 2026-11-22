@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
+use App\Models\BreathingLog;
 use Illuminate\Http\Request;
 
 class ExerciseController extends Controller
@@ -25,7 +25,7 @@ class ExerciseController extends Controller
                 'inhale'      => 4,
                 'hold'        => 4,
                 'exhale'      => 4,
-                'cycles'      => 4,
+                'cycles'      => 5,
                 'description' => 'Menstabilkan napas saat pikiran terasa penuh atau sulit berkonsentrasi.',
             ],
             [
@@ -34,7 +34,7 @@ class ExerciseController extends Controller
                 'inhale'      => 4,
                 'hold'        => 0,
                 'exhale'      => 4,
-                'cycles'      => 5,
+                'cycles'      => 6,
                 'description' => 'Ritme ringan tanpa jeda tahan napas, cocok untuk pemula atau saat dada terasa sesak.',
             ],
         ];
@@ -50,15 +50,12 @@ class ExerciseController extends Controller
             'duration'    => 'required|string|max:30',
         ]);
 
-        $completed = session('completed_breathing', []);
-        array_unshift($completed, [
+        BreathingLog::create([
+            ...$this->ownerAttributes(),
             'rhythm_name' => $validated['rhythm_name'],
             'cycles'      => $validated['cycles'],
             'duration'    => $validated['duration'],
-            'finished_at' => Carbon::now()->locale('id')->isoFormat('D MMM, HH:mm'),
         ]);
-
-        session(['completed_breathing' => array_slice($completed, 0, 10)]);
 
         return response()->json(['status' => 'ok']);
     }

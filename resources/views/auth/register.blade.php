@@ -5,7 +5,7 @@
 @section('auth-card')
     <span class="chip-soft"><x-icon name="sprout" class="h-3 w-3" /> Mulai Perlahan</span>
     <h1 class="heading-lg mt-4">Buat ruang teduhmu.</h1>
-    <p class="mt-2 text-sm text-muted">Akun membantu menyimpan catatan mood dan jurnalmu secara privat.</p>
+    <p class="mt-2 text-sm text-muted">Akun bersifat opsional: semua fitur tetap bisa dipakai tanpa daftar. Dengan akun, catatan bisa dibuka lintas perangkat dan catatan tamumu ikut dipindahkan.</p>
 
     <form method="POST" action="{{ route('register.post') }}" class="mt-8 space-y-4">
         @csrf

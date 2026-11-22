@@ -5,7 +5,7 @@
 @section('auth-card')
     <span class="chip-soft"><x-icon name="lock" class="h-3 w-3" /> Ruang Privatmu</span>
     <h1 class="heading-lg mt-4">Selamat datang kembali.</h1>
-    <p class="mt-2 text-sm text-muted">Masuk untuk melanjutkan catatan perasaan dan lembar jurnalmu.</p>
+    <p class="mt-2 text-sm text-muted">Akun bersifat opsional. Masuk agar catatan bisa dibuka lintas perangkat; catatan tamu di peramban ini akan otomatis dipindahkan ke akunmu.</p>
 
     <form method="POST" action="{{ route('login.post') }}" class="mt-8 space-y-4">
         @csrf

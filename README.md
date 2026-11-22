@@ -11,8 +11,31 @@ Ruang teduh digital bagi remaja dan anak muda untuk bernapas, mengenali rasa, da
 | Beranda | `/` | Hero, cek perasaan cepat, tiga pilihan jeda, ringkasan mood 7 hari, artikel pilihan, sumber bantuan |
 | Jelajahi | `/jelajahi` | Perpustakaan rasa: pencarian, filter kategori, urutan, pilihan redaksi, detail artikel |
 | Latihan Napas | `/latihan` | Panduan napas interaktif (4-7-8, 4-4-4, 4-4) dengan animasi lingkaran |
-| Jurnal | `/jurnal` | Editor jurnal dengan pemantik, Layar Tenang, arsip, pencarian, unduh `.txt` (perlu login) |
-| Mood | `/mood` | Catat mood + pemicu, ritme minggu ini, riwayat dengan edit/hapus (perlu login) |
+| Jurnal | `/jurnal` | Editor jurnal dengan pemantik, Layar Tenang, auto-save draf tiap 5 detik (LocalStorage), arsip, pencarian, unduh `.txt` |
+| Mood | `/mood` | Catat mood + pemicu + waktu (bisa disesuaikan), ritme minggu ini, narasi lembut otomatis, riwayat dengan edit/hapus |
+
+## Tanpa login (mode tamu)
+
+Sesuai PRD, **semua fitur bisa dipakai tanpa akun**:
+
+- Setiap pengunjung mendapat token anonim di cookie terenkripsi (`AppHttpMiddlewareEnsureGuestToken`).
+- Catatan tamu disimpan dengan `user_id = null` dan `guest_token`, sehingga hanya bisa dibuka dari peramban yang sama.
+- Saat tamu **daftar/masuk**, catatan tamunya otomatis dipindahkan ke akun tersebut.
+- Cek Perasaan di Beranda tersimpan tanpa muat ulang halaman, dengan opsi **"Simpan di peramban saja"** (murni LocalStorage, tidak dikirim ke server).
+- Akun bersifat opsional, berguna agar catatan bisa dibuka lintas perangkat.
+
+## Struktur (MVC Laravel)
+
+- **Route**: `routes/web.php`
+- **Controller**: `Home`, `Mood`, `Journal`, `Exercise`, `Resource`, `Auth`
+- **Model**: `User`, `MoodLog`, `JournalEntry`, `BreathingLog`, `Article`
+- **View**: Blade + Alpine.js untuk interaksi kecil di peramban (tanpa Livewire)
+
+## Catatan terhadap PRD
+
+- PRD menulis Laravel 11 / Livewire 3; proyek ini memakai **Laravel 13 + Alpine.js** (PRD mengizinkan "Livewire 3 / Alpine.js").
+- Warna mengikuti frame *Design System* di Figma (#355442 dst.), yang sedikit berbeda dari palet contoh di PRD (#2D4030 dst.).
+- Kolom `mood_logs.logged_date` tetap dipakai untuk kalender, ditambah `logged_at` (timestamp) sesuai PRD.
 
 ## Design tokens
 

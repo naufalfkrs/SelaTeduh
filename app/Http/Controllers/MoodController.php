@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BreathingLog;
 use App\Models\JournalEntry;
 use App\Models\MoodLog;
 use Carbon\Carbon;
@@ -37,12 +38,16 @@ class MoodController extends Controller
             ]);
         }
 
-        // 2. Narasi lembut otomatis berdasarkan pola mood minggu ini
-        $weeklyNarrative = $this->generateWeeklyNarrative($weeklyLogs);
+        // 2. Narasi lembut otomatis berdasarkan pola 7 hari terakhir (aturan PRD)
+        $lastSevenDaysLogs = $this->scopeOwner(MoodLog::query())
+            ->whereDate('logged_date', '>=', Carbon::today()->subDays(6))
+            ->get();
+        $weeklyNarrative = $this->generateWeeklyNarrative($lastSevenDaysLogs);
 
         // 3. Daftar riwayat catatan terdahulu + filter tab
         $logsQuery = $this->scopeOwner(MoodLog::query())
             ->orderByDesc('logged_date')
+            ->orderByDesc('logged_at')
             ->orderByDesc('created_at');
 
         if ($filter === 'hanya_mood') {
@@ -59,7 +64,10 @@ class MoodController extends Controller
             ->take(2)
             ->get();
 
-        $recentBreathing = collect(session('completed_breathing', []))->take(2);
+        $recentBreathing = $this->scopeOwner(BreathingLog::query())
+            ->latest()
+            ->take(2)
+            ->get();
 
         return view('mood.index', compact(
             'weekDays',
@@ -74,22 +82,38 @@ class MoodController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mood'        => 'required|in:Tenang,Biasa Saja,Lelah,Resah,Kewalahan',
-            'triggers'    => 'nullable|array',
-            'triggers.*'  => 'string|max:50',
-            'note'        => 'nullable|string|max:2000',
-            'logged_date' => 'nullable|date',
+            'mood'       => 'required|in:Tenang,Biasa Saja,Lelah,Resah,Kewalahan',
+            'triggers'   => 'nullable|array',
+            'triggers.*' => 'string|max:50',
+            'note'       => 'nullable|string|max:500',
+            // Waktu pencatatan real-time, bisa disesuaikan manual (tidak boleh di masa depan)
+            'logged_at'  => 'nullable|date|before_or_equal:now',
+        ], [
+            'note.max'                  => 'Catatan singkat maksimal 500 karakter.',
+            'logged_at.before_or_equal' => 'Waktu pencatatan tidak boleh di masa depan.',
         ]);
 
-        MoodLog::create([
+        $loggedAt = isset($validated['logged_at'])
+            ? Carbon::parse($validated['logged_at'])
+            : Carbon::now();
+
+        $log = MoodLog::create([
             ...$this->ownerAttributes(),
             'mood'        => $validated['mood'],
             'triggers'    => $validated['triggers'] ?? [],
             'note'        => $validated['note'] ?? null,
-            'logged_date' => $validated['logged_date'] ?? Carbon::today()->toDateString(),
+            'logged_at'   => $loggedAt,
+            'logged_date' => $loggedAt->toDateString(),
         ]);
 
-        return back()->with('success', 'Catatan rasamu hari ini sudah tersimpan dengan aman.');
+        $message = 'Catatan rasamu hari ini sudah tersimpan dengan aman.';
+
+        // Dipakai Quick Check-in di Beranda (tersimpan tanpa muat ulang halaman)
+        if ($request->expectsJson()) {
+            return response()->json(['status' => 'ok', 'message' => $message, 'mood' => $log->mood], 201);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function update(Request $request, MoodLog $moodLog)
@@ -100,7 +124,7 @@ class MoodController extends Controller
             'mood'       => 'required|in:Tenang,Biasa Saja,Lelah,Resah,Kewalahan',
             'triggers'   => 'nullable|array',
             'triggers.*' => 'string|max:50',
-            'note'       => 'nullable|string|max:2000',
+            'note'       => 'nullable|string|max:500',
         ]);
 
         $moodLog->update([
@@ -124,6 +148,19 @@ class MoodController extends Controller
     {
         if ($weeklyLogs->isEmpty()) {
             return 'Belum ada catatan pekan ini. Tidak apa-apa, mulailah menyapa dirimu saat kamu sudah siap.';
+        }
+
+        // Aturan PRD: pemicu dominan Tugas/Sekolah atau Tidur Kurang disertai mood Lelah
+        $dominantTrigger = $weeklyLogs
+            ->flatMap(fn ($log) => $log->triggers ?? [])
+            ->countBy()
+            ->sortDesc()
+            ->keys()
+            ->first();
+
+        if (in_array($dominantTrigger, ['Tugas/Sekolah', 'Tidur Kurang'], true)
+            && $weeklyLogs->contains('mood', 'Lelah')) {
+            return 'Di awal minggu kamu sempat merasa lelah dan resah karena tugas. Namun ritmemu kembali melambat dan tenang di pertengahan hari. Sangat wajar jika energi naik-turun setelah aktivitas padat. Tubuhmu sudah berupaya sebaik mungkin.';
         }
 
         $heavyCount = $weeklyLogs->whereIn('mood', ['Lelah', 'Resah', 'Kewalahan'])->count();

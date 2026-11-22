@@ -11,10 +11,48 @@
             const trimmed = this.content.trim();
             return trimmed === '' ? 0 : trimmed.split(/\s+/).length;
         },
+        draftKey: 'selateduh:jurnal-draf',
+        draftSavedAt: null,
+        submitting: false,
+        init() {
+            // Pulihkan draf dari LocalStorage jika editor masih kosong
+            try {
+                const draft = JSON.parse(localStorage.getItem(this.draftKey) || 'null');
+                if (draft && this.content === '' && this.title === '') {
+                    this.title = draft.title || '';
+                    this.content = draft.content || '';
+                    this.draftSavedAt = draft.savedAt || null;
+                }
+            } catch (e) {}
+
+            // Auto-save draf setiap 5 detik (PRD Modul 3)
+            setInterval(() => this.saveDraft(), 5000);
+
+            // Layar Tenang menyembunyikan header & footer situs
+            this.$watch('quietMode', on => document.body.classList.toggle('quiet-mode', on));
+        },
+        saveDraft() {
+            if (this.submitting) return;
+            try {
+                if (this.title.trim() === '' && this.content.trim() === '') {
+                    localStorage.removeItem(this.draftKey);
+                    this.draftSavedAt = null;
+                    return;
+                }
+                const savedAt = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                localStorage.setItem(this.draftKey, JSON.stringify({ title: this.title, content: this.content, savedAt }));
+                this.draftSavedAt = savedAt;
+            } catch (e) {}
+        },
+        clearDraft() {
+            try { localStorage.removeItem(this.draftKey); } catch (e) {}
+        },
         clearEditor() {
             if (this.content.trim() === '' || confirm('Kosongkan tulisan yang sedang diketik?')) {
                 this.title = '';
                 this.content = '';
+                this.clearDraft();
+                this.draftSavedAt = null;
             }
         }
      }"
@@ -27,7 +65,7 @@
         </a>
         <span class="chip bg-white text-muted ring-1 ring-line">
             <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
-            Ruang Privat • Tersimpan di Akunmu
+            @auth Ruang Privat • Tersimpan di Akunmu @else Mode Tamu • Tersimpan untuk Peramban Ini @endauth
         </span>
     </div>
 
@@ -39,6 +77,8 @@
             Nggak perlu merangkai kata dengan sempurna. Mulai dari apa yang kamu rasakan saat ini.
         </p>
     </div>
+
+    <div x-show="!quietMode">@include('partials.guest-note')</div>
 
     <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <!-- Kolom Kiri -->
@@ -128,7 +168,7 @@
                         </button>
                     </div>
 
-                    <form method="POST" action="{{ route('journal.store') }}" class="mt-5">
+                    <form method="POST" action="{{ route('journal.store') }}" class="mt-5" x-on:submit="submitting = true; clearDraft()">
                         @csrf
                         <input type="hidden" name="prompt" value="{{ $currentPrompt }}">
 
@@ -146,7 +186,7 @@
 
                         <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-subtle">
                             <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span> Ruang privat aktif — hanya kamu yang bisa membacanya</span>
-                            <span><span x-text="wordCount">0</span> kata • mengalir hening</span>
+                            <span><span x-text="wordCount">0</span> kata • <span x-text="draftSavedAt ? 'draf tersimpan ' + draftSavedAt : 'draf tersimpan otomatis'">draf tersimpan otomatis</span></span>
                         </div>
 
                         <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
@@ -165,7 +205,7 @@
                 <x-icon name="shield-check" class="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <div class="text-[13px] leading-relaxed text-muted">
                     <p class="font-semibold text-ink">Jaminan Keheningan &amp; Privasi Penuh</p>
-                    Tulisanmu tersimpan khusus di ruang akun pribadimu. SelaTeduh tidak membuat profil analitik emosi dari kata-katamu dan tidak pernah membagikannya kepada siapa pun. Ceritamu sepenuhnya milikmu.
+                    @auth Tulisanmu tersimpan khusus di ruang akun pribadimu. @else Tulisanmu tersimpan sebagai catatan tamu yang hanya bisa dibuka dari peramban ini. Draf yang sedang kamu ketik juga disimpan otomatis di peramban (LocalStorage). @endauth SelaTeduh tidak membuat profil analitik emosi dari kata-katamu dan tidak pernah membagikannya kepada siapa pun. Ceritamu sepenuhnya milikmu.
                 </div>
             </div>
 

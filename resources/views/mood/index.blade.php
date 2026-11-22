@@ -13,7 +13,7 @@
         </a>
         <span class="chip bg-white text-muted ring-1 ring-line">
             <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
-            Tersimpan Privat di Akunmu • Tanpa Pelacakan Data
+            @auth Tersimpan Privat di Akunmu @else Mode Tamu • Tersimpan untuk Peramban Ini @endauth • Tanpa Pelacakan Data
         </span>
     </div>
 
@@ -31,6 +31,8 @@
             Tidak ada skor, tidak ada target kesempurnaan. Setiap emosi berhak memiliki ruang jeda.
         </div>
     </div>
+
+    @include('partials.guest-note')
 
     <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <!-- Kolom Kiri -->
@@ -92,13 +94,24 @@
                     </div>
 
                     <label for="note" class="mt-6 mb-2 block font-serif text-base italic text-muted">Apa yang sedang singgah di pikiranmu?</label>
-                    <textarea id="note" name="note" rows="3" x-model="note" maxlength="2000" class="field resize-none"
+                    <textarea id="note" name="note" rows="3" x-model="note" maxlength="500" class="field resize-none"
                               placeholder="Tuliskan sepatah dua patah kata jika ingin mencatat penyebabnya... (opsional, hanya untuk dirimu sendiri)"></textarea>
+                    <div class="mt-1 flex justify-between text-[11px] text-subtle">
+                        @error('note') <span class="text-danger">{{ $message }}</span> @else <span></span> @enderror
+                        <span><span x-text="note.length">0</span>/500</span>
+                    </div>
+                    @error('logged_at') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
 
                     <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-                        <span class="flex items-center gap-1.5 text-xs text-subtle">
-                            <x-icon name="clock" class="h-3.5 w-3.5" /> Waktu saat ini: {{ now()->format('H:i') }} WIB
-                        </span>
+                        <label class="flex items-center gap-1.5 text-xs text-subtle">
+                            <x-icon name="clock" class="h-3.5 w-3.5" />
+                            <span>Waktu dicatat:</span>
+                            <input type="datetime-local" name="logged_at"
+                                   value="{{ old('logged_at', now()->format('Y-m-dTH:i')) }}"
+                                   max="{{ now()->format('Y-m-dTH:i') }}"
+                                   aria-label="Sesuaikan waktu pencatatan"
+                                   class="rounded-lg border border-line bg-canvas px-2 py-1 text-xs text-ink focus:border-primary focus:outline-none">
+                        </label>
                         <div class="flex items-center gap-2">
                             <button type="button" x-on:click="resetForm()" class="btn-ghost">Kosongkan</button>
                             <button type="submit" class="btn-primary"><x-icon name="check" class="h-3.5 w-3.5" /> Simpan Catatan Hari Ini</button>
@@ -178,7 +191,7 @@
                                     <div class="flex items-center gap-3 text-[11px] text-subtle">
                                         <span class="flex items-center gap-1">
                                             <x-icon name="clock" class="h-3 w-3" />
-                                            {{ $log->logged_date->locale('id')->isoFormat('ddd, D MMM') }} • {{ $log->created_at->format('H:i') }} WIB
+                                            {{ $log->logged_date->locale('id')->isoFormat('ddd, D MMM') }} • {{ ($log->logged_at ?? $log->created_at)->format('H:i') }} WIB
                                         </span>
                                         <button type="button" x-on:click="editing = true" class="cursor-pointer hover:text-primary" aria-label="Ubah catatan"><x-icon name="edit" class="h-3.5 w-3.5" /></button>
                                         <form method="POST" action="{{ route('mood.destroy', $log) }}" onsubmit="return confirm('Hapus catatan perasaan ini?');">
@@ -247,10 +260,10 @@
                             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"><x-icon name="wind" class="h-4 w-4" /></span>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center justify-between gap-2 text-[10px] text-subtle">
-                                    <span class="font-semibold text-muted">Latihan Napas</span><span>{{ $breath['finished_at'] }}</span>
+                                    <span class="font-semibold text-muted">Latihan Napas</span><span>{{ $breath->created_at->locale('id')->isoFormat('D MMM, HH:mm') }}</span>
                                 </div>
-                                <p class="truncate text-[13px] font-semibold text-ink">{{ $breath['rhythm_name'] }}</p>
-                                <p class="text-[11px] text-muted">{{ $breath['cycles'] }} siklus • {{ $breath['duration'] }}</p>
+                                <p class="truncate text-[13px] font-semibold text-ink">{{ $breath->rhythm_name }}</p>
+                                <p class="text-[11px] text-muted">{{ $breath->cycles }} siklus • {{ $breath->duration }}</p>
                             </div>
                         </div>
                     @endforeach

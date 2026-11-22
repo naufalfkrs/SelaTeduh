@@ -60,8 +60,64 @@
             </p>
         </div>
 
-        <div x-data="{ selectedMood: 'Tenang' }" class="card mx-auto mt-8 max-w-2xl p-6 sm:p-7">
-            <form method="POST" action="{{ route('mood.store') }}">
+        <div x-data="{
+                selectedMood: 'Tenang',
+                note: '',
+                saveLocal: false,
+                saving: false,
+                status: null,   // null | 'server' | 'local' | 'error'
+                message: '',
+                storeKey: 'selateduh:mood-lokal',
+                init() {
+                    try { this.saveLocal = localStorage.getItem('selateduh:simpan-peramban') === '1'; } catch (e) {}
+                    this.$watch('saveLocal', v => { try { localStorage.setItem('selateduh:simpan-peramban', v ? '1' : '0'); } catch (e) {} });
+                },
+                async submit() {
+                    this.saving = true;
+                    this.status = null;
+
+                    // Opsi privat: simpan murni di peramban, tidak dikirim ke server
+                    if (this.saveLocal) {
+                        try {
+                            const items = JSON.parse(localStorage.getItem(this.storeKey) || '[]');
+                            items.unshift({ mood: this.selectedMood, note: this.note, logged_at: new Date().toISOString() });
+                            localStorage.setItem(this.storeKey, JSON.stringify(items.slice(0, 100)));
+                            this.status = 'local';
+                            this.message = 'Tersimpan privat di peramban ini saja. Tidak ada data yang dikirim ke server.';
+                            this.note = '';
+                        } catch (e) {
+                            this.status = 'error';
+                            this.message = 'Peramban ini tidak mengizinkan penyimpanan lokal.';
+                        }
+                        this.saving = false;
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(@js(route('mood.store')), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
+                            },
+                            body: JSON.stringify({ mood: this.selectedMood, note: this.note || null }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.message || 'Gagal menyimpan');
+                        this.status = 'server';
+                        this.message = data.message;
+                        this.note = '';
+                    } catch (e) {
+                        this.status = 'error';
+                        this.message = e.message || 'Catatan belum tersimpan. Coba lagi sebentar lagi, ya.';
+                    } finally {
+                        this.saving = false;
+                    }
+                }
+             }"
+             class="card mx-auto mt-8 max-w-2xl p-6 sm:p-7">
+            <form method="POST" action="{{ route('mood.store') }}" x-on:submit.prevent="submit()">
                 @csrf
                 <input type="hidden" name="mood" x-bind:value="selectedMood">
 
@@ -78,22 +134,37 @@
                     @endforeach
                 </div>
 
-                <textarea name="note" rows="3" class="field mt-5 resize-none"
+                <textarea name="note" rows="3" maxlength="500" x-model="note" class="field mt-5 resize-none"
                           placeholder="Tuliskan sepatah dua patah kata jika ingin... (opsional)"></textarea>
 
+                <label class="mt-3 flex cursor-pointer items-center gap-2 text-xs text-muted">
+                    <input type="checkbox" x-model="saveLocal" class="h-4 w-4 rounded border-line accent-[#355442]">
+                    Simpan di peramban saja (tidak dikirim ke server)
+                </label>
+
                 <div class="mt-4 flex flex-wrap items-center gap-4">
-                    @auth
-                        <button type="submit" class="btn-primary">Simpan dalam ruang privat</button>
-                    @else
-                        <a href="{{ route('login') }}" class="btn-primary">Simpan dalam ruang privat</a>
-                    @endauth
+                    <button type="submit" class="btn-primary" x-bind:disabled="saving" x-bind:class="saving && 'opacity-60'">
+                        <span x-text="saving ? 'Menyimpan...' : 'Simpan dalam ruang privat'">Simpan dalam ruang privat</span>
+                    </button>
                     <a href="#pilihan-jeda" class="text-[13px] text-muted underline underline-offset-4 hover:text-ink">Lewati untuk sekarang</a>
                 </div>
             </form>
 
+            <!-- Status banner (tanpa muat ulang halaman) -->
+            <div x-show="status" x-cloak x-transition role="status"
+                 x-bind:class="status === 'error' ? 'bg-[#FBEFE7] text-[#9A5B36]' : 'bg-secondary text-primary'"
+                 class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl px-4 py-3 text-xs font-medium">
+                <span class="flex items-center gap-2">
+                    <x-icon name="check" class="h-4 w-4" x-show="status !== 'error'" />
+                    <span x-text="message"></span>
+                </span>
+                <a x-show="status === 'server'" href="{{ route('mood.index') }}" class="link-arrow text-xs">Lihat ritme minggu ini <x-icon name="arrow-right" class="h-3 w-3" /></a>
+            </div>
+
             <p class="mt-5 flex items-start gap-2 text-xs leading-relaxed text-subtle">
                 <x-icon name="lock" class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                Catatanmu tersimpan privat di akunmu. SelaTeduh tidak mendiagnosis atau menghakimi kondisimu.
+                @auth Catatanmu tersimpan privat di akunmu. @else Tanpa akun pun bisa: catatanmu tersimpan sebagai catatan tamu untuk peramban ini. @endauth
+                SelaTeduh tidak mendiagnosis atau menghakimi kondisimu.
             </p>
         </div>
     </div>

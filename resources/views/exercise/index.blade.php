@@ -5,7 +5,6 @@
 @section('content')
 <div x-data="{
         rhythms: @js($rhythms),
-        isLoggedIn: @js(auth()->check()),
         completeUrl: @js(route('exercise.complete')),
         selectedIndex: 0,
         status: 'idle', // idle | running | paused | finished
@@ -134,7 +133,7 @@
             this.phase = 'done';
             this.secondsLeft = 0;
 
-            if (this.isLoggedIn && !this.sessionSaved) {
+            if (!this.sessionSaved) {
                 this.sessionSaved = true;
                 fetch(this.completeUrl, {
                     method: 'POST',

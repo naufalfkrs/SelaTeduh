@@ -142,3 +142,9 @@
 .breath-ring {
     transition: transform 1s ease-in-out;
 }
+
+/* Layar Tenang (jurnal): sembunyikan navigasi header & footer situs */
+body.quiet-mode > header,
+body.quiet-mode > footer {
+    display: none;
+}

@@ -40,4 +40,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(JournalEntry::class);
     }
+
+    public function breathingLogs(): HasMany
+    {
+        return $this->hasMany(BreathingLog::class);
+    }
 }
