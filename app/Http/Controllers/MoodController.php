@@ -87,9 +87,9 @@ class MoodController extends Controller
     {
         $validated = $request->validate($this->rules(), $this->messages());
 
-        // Satu catatan rasa per hari: jika sudah ada, arahkan untuk mengubah catatan hari ini
+        // Satu catatan rasa per hari (dari Beranda maupun halaman Mood) dan tidak bisa diubah
         if ($existing = $this->todayLog()) {
-            $message = 'Rasamu hari ini sudah tercatat. Kamu bisa melengkapi atau mengubahnya di halaman Catatan Mood.';
+            $message = 'Rasamu hari ini sudah tercatat. Catatan rasa cukup sekali sehari, sampai jumpa besok.';
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -103,7 +103,8 @@ class MoodController extends Controller
             return redirect()->route('mood.index')->with('success', $message);
         }
 
-        $loggedAt = $this->resolveLoggedAt($validated);
+        // Waktu dicatat otomatis saat ini (real-time), tidak bisa diubah
+        $loggedAt = Carbon::now();
 
         $log = MoodLog::create([
             ...$this->ownerAttributes(),
@@ -127,27 +128,6 @@ class MoodController extends Controller
         }
 
         return back()->with('success', $message);
-    }
-
-    public function update(Request $request, MoodLog $moodLog)
-    {
-        $this->authorizeOwnership($moodLog);
-
-        // Catatan hari yang sudah berlalu adalah jejak: tidak diubah lagi, hanya bisa dihapus
-        if (! $moodLog->logged_date->isToday()) {
-            return back()->withErrors(['mood' => 'Catatan hari yang sudah berlalu tidak bisa diubah, hanya bisa dihapus.']);
-        }
-
-        $validated = $request->validate($this->rules(), $this->messages());
-
-        $moodLog->update([
-            'mood'      => $validated['mood'],
-            'triggers'  => $validated['triggers'] ?? [],
-            'note'      => $validated['note'] ?? null,
-            'logged_at' => isset($validated['logged_at']) ? $this->resolveLoggedAt($validated) : $moodLog->logged_at,
-        ]);
-
-        return back()->with('success', 'Catatan rasamu hari ini sudah diperbarui.');
     }
 
     public function destroy(MoodLog $moodLog)
@@ -175,8 +155,6 @@ class MoodController extends Controller
             'triggers'   => 'nullable|array',
             'triggers.*' => 'string|max:50',
             'note'       => 'nullable|string|max:500',
-            // Waktu real-time, bisa disesuaikan manual tetapi tetap di hari ini dan bukan masa depan
-            'logged_at'  => 'nullable|date|after_or_equal:today|before_or_equal:now',
         ];
     }
 
@@ -184,14 +162,7 @@ class MoodController extends Controller
     {
         return [
             'note.max'                  => 'Catatan singkat maksimal 500 karakter.',
-            'logged_at.after_or_equal'  => 'Waktu pencatatan hanya bisa disesuaikan di hari ini.',
-            'logged_at.before_or_equal' => 'Waktu pencatatan tidak boleh di masa depan.',
         ];
-    }
-
-    private function resolveLoggedAt(array $validated): Carbon
-    {
-        return isset($validated['logged_at']) ? Carbon::parse($validated['logged_at']) : Carbon::now();
     }
 
     private function generateWeeklyNarrative($weeklyLogs): string

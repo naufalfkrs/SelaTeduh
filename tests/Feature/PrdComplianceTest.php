@@ -62,7 +62,6 @@ class PrdComplianceTest extends TestCase
         $this->asGuest(self::GUEST_B)->get('/mood')->assertOk()->assertDontSee('Rahasia tamu A');
         $this->asGuest(self::GUEST_B)->get('/jurnal')->assertOk()->assertDontSee('Jurnal rahasia tamu A');
         $this->asGuest(self::GUEST_B)->delete("/mood/{$mood->id}")->assertForbidden();
-        $this->asGuest(self::GUEST_B)->put("/mood/{$mood->id}", ['mood' => 'Tenang'])->assertForbidden();
         $this->asGuest(self::GUEST_B)->delete("/jurnal/{$entry->id}")->assertForbidden();
 
         $this->asGuest(self::GUEST_A)->delete("/mood/{$mood->id}")->assertRedirect();
@@ -78,8 +77,6 @@ class PrdComplianceTest extends TestCase
         $this->actingAs($other)->delete("/mood/{$mood->id}")->assertForbidden();
         $this->actingAs($other)->delete("/jurnal/{$entry->id}")->assertForbidden();
 
-        $this->actingAs($owner)->put("/mood/{$mood->id}", ['mood' => 'Tenang', 'note' => 'Sudah lebih baik'])->assertRedirect();
-        $this->assertSame('Tenang', $mood->fresh()->mood);
         $this->actingAs($owner)->delete("/jurnal/{$entry->id}")->assertRedirect('/jurnal');
         $this->assertModelMissing($entry);
     }
@@ -141,22 +138,17 @@ class PrdComplianceTest extends TestCase
     {
         $this->asGuest(self::GUEST_A)->postJson('/mood', ['mood' => 'Senang'])->assertUnprocessable()->assertJsonValidationErrors('mood');
         $this->asGuest(self::GUEST_A)->postJson('/mood', ['mood' => 'Tenang', 'note' => str_repeat('a', 501)])->assertJsonValidationErrors('note');
-        $this->asGuest(self::GUEST_A)->postJson('/mood', ['mood' => 'Tenang', 'logged_at' => now()->addDay()->toDateTimeString()])->assertJsonValidationErrors('logged_at');
     }
 
-    public function test_mood_logging_time_can_be_adjusted_manually_within_today(): void
+    public function test_mood_time_is_recorded_automatically_and_cannot_be_set(): void
     {
-        Carbon::setTestNow(Carbon::today()->setTime(22, 0));
-        $when = Carbon::today()->setTime(21, 30);
+        Carbon::setTestNow(Carbon::today()->setTime(21, 30));
 
-        // Tidak bisa dimundurkan ke hari kemarin
-        $this->asGuest(self::GUEST_A)->postJson('/mood', ['mood' => 'Resah', 'logged_at' => $when->copy()->subDay()->format('Y-m-d\TH:i')])
-            ->assertJsonValidationErrors('logged_at');
-
-        $this->asGuest(self::GUEST_A)->post('/mood', ['mood' => 'Resah', 'logged_at' => $when->format('Y-m-d\TH:i')]);
+        // Waktu dari form diabaikan: selalu dicatat saat ini
+        $this->asGuest(self::GUEST_A)->post('/mood', ['mood' => 'Resah', 'logged_at' => now()->subDays(3)->toDateTimeString()]);
 
         $log = MoodLog::first();
-        $this->assertSame($when->toDateString(), $log->logged_date->toDateString());
+        $this->assertTrue($log->logged_date->isToday());
         $this->assertSame('21:30', $log->logged_at->format('H:i'));
         Carbon::setTestNow();
     }
@@ -177,26 +169,21 @@ class PrdComplianceTest extends TestCase
         // Halaman Mood menampilkan form "ubah catatan hari ini"
         $this->asGuest(self::GUEST_A)->get('/mood')->assertOk()
             ->assertSee('Rasamu hari ini sudah tercatat.')
-            ->assertSee('Simpan Perubahan');
+            ->assertDontSee('Simpan Catatan');
 
         // Tamu lain tetap bisa mencatat
         $this->asGuest(self::GUEST_B)->postJson('/mood', ['mood' => 'Tenang'])->assertCreated();
     }
 
-    public function test_only_todays_mood_can_be_edited_past_ones_can_only_be_deleted(): void
+    public function test_mood_cannot_be_edited_only_deleted(): void
     {
-        $today = MoodLog::create(['guest_token' => self::GUEST_A, 'mood' => 'Lelah', 'logged_date' => today(), 'logged_at' => now()]);
-        $past = MoodLog::create(['guest_token' => self::GUEST_A, 'mood' => 'Resah', 'logged_date' => today()->subDays(2), 'logged_at' => now()->subDays(2)]);
+        $log = MoodLog::create(['guest_token' => self::GUEST_A, 'mood' => 'Lelah', 'logged_date' => today(), 'logged_at' => now()]);
 
-        $this->asGuest(self::GUEST_A)->put("/mood/{$today->id}", ['mood' => 'Tenang', 'triggers' => ['Waktu Sendiri']])->assertRedirect();
-        $this->assertSame('Tenang', $today->fresh()->mood);
-        $this->assertSame(['Waktu Sendiri'], $today->fresh()->triggers);
+        $this->asGuest(self::GUEST_A)->put("/mood/{$log->id}", ['mood' => 'Tenang'])->assertMethodNotAllowed();
+        $this->assertSame('Lelah', $log->fresh()->mood);
 
-        $this->asGuest(self::GUEST_A)->put("/mood/{$past->id}", ['mood' => 'Tenang'])->assertSessionHasErrors('mood');
-        $this->assertSame('Resah', $past->fresh()->mood);
-
-        $this->asGuest(self::GUEST_A)->delete("/mood/{$past->id}")->assertRedirect();
-        $this->assertModelMissing($past);
+        $this->asGuest(self::GUEST_A)->delete("/mood/{$log->id}")->assertRedirect();
+        $this->assertModelMissing($log);
     }
 
     public function test_weekly_narrative_uses_prd_rule_for_school_and_sleep_fatigue(): void

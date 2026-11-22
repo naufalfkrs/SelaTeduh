@@ -139,7 +139,7 @@
                     <span x-show="done && done.where === 'local'">(tersimpan di peramban ini saja)</span>.
                 </p>
                 <p class="mx-auto mt-3 max-w-md text-xs leading-relaxed text-subtle">
-                    Check-in cukup sekali sehari. Kalau rasamu berubah atau ingin menambah pemicu dan catatan, ubah catatan hari ini di halaman Catatan Mood.
+                    Check-in ini langsung masuk ke Catatan Mood-mu. Catatan rasa cukup sekali sehari; sampai jumpa besok.
                 </p>
                 <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ route('mood.index') }}" class="btn-primary">Buka Catatan Mood <x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
