@@ -59,10 +59,7 @@
      class="container-page pt-8">
 
     <!-- Top Bar -->
-    <div x-show="!quietMode" class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-        <a href="{{ route('mood.index') }}" class="inline-flex items-center gap-1.5 font-medium transition hover:text-primary">
-            <x-icon name="arrow-left" class="h-3.5 w-3.5" /> Kembali ke Latihan &amp; Aktivitas
-        </a>
+    <div x-show="!quietMode" class="flex flex-wrap items-center justify-end gap-3 text-xs text-muted">
         <span class="chip bg-white text-muted ring-1 ring-line">
             <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
             @auth Ruang Privat • Tersimpan di Akunmu @else Mode Tamu • Tersimpan untuk Peramban Ini @endauth

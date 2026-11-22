@@ -154,10 +154,7 @@
      class="container-page pt-8 pb-4">
 
     <!-- Top Bar -->
-    <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-        <a href="{{ route('home') }}#pilihan-jeda" class="inline-flex items-center gap-1.5 font-medium transition hover:text-primary">
-            <x-icon name="arrow-left" class="h-3.5 w-3.5" /> Kembali ke Latihan
-        </a>
+    <div class="flex flex-wrap items-center justify-end gap-3 text-xs text-muted">
         <span class="chip bg-white text-muted ring-1 ring-line">
             <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
             Latihan Mandiri • <span x-text="'Ritme ' + currentRhythm.name">Ritme Rileks (4-7-8)</span>

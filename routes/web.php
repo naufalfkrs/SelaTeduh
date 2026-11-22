@@ -17,7 +17,6 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 // Mood Tracker
 Route::get('/mood', [MoodController::class, 'index'])->name('mood.index');
 Route::post('/mood', [MoodController::class, 'store'])->name('mood.store');
-Route::delete('/mood/{moodLog}', [MoodController::class, 'destroy'])->name('mood.destroy');
 
 // Jurnal Reflektif
 Route::get('/jurnal', [JournalController::class, 'index'])->name('journal.index');

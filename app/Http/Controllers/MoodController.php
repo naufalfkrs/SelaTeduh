@@ -130,14 +130,6 @@ class MoodController extends Controller
         return back()->with('success', $message);
     }
 
-    public function destroy(MoodLog $moodLog)
-    {
-        $this->authorizeOwnership($moodLog);
-        $moodLog->delete();
-
-        return back()->with('success', 'Catatan perasaan telah dihapus.');
-    }
-
     /** Catatan rasa milik pengguna/tamu ini untuk hari ini (maksimal satu). */
     private function todayLog(): ?MoodLog
     {

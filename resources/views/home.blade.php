@@ -62,6 +62,12 @@
 
         <div x-data="{
                 selectedMood: 'Tenang',
+                selectedTriggers: [],
+                toggleTrigger(item) {
+                    this.selectedTriggers = this.selectedTriggers.includes(item)
+                        ? this.selectedTriggers.filter(i => i !== item)
+                        : [...this.selectedTriggers, item];
+                },
                 note: '',
                 saveLocal: false,
                 saving: false,
@@ -93,7 +99,7 @@
                     if (this.saveLocal) {
                         try {
                             const items = JSON.parse(localStorage.getItem(this.storeKey) || '[]');
-                            items.unshift({ mood: this.selectedMood, note: this.note, logged_at: new Date().toISOString() });
+                            items.unshift({ mood: this.selectedMood, triggers: this.selectedTriggers, note: this.note, logged_at: new Date().toISOString() });
                             localStorage.setItem(this.storeKey, JSON.stringify(items.slice(0, 100)));
                             this.done = { mood: this.selectedMood, time: this.nowTime(), where: 'local' };
                             this.note = '';
@@ -113,7 +119,7 @@
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
                             },
-                            body: JSON.stringify({ mood: this.selectedMood, note: this.note || null }),
+                            body: JSON.stringify({ mood: this.selectedMood, triggers: this.selectedTriggers, note: this.note || null }),
                         });
                         const data = await res.json();
                         // 409 = hari ini sudah tercatat (mis. dari tab lain): tampilkan catatan yang ada
@@ -139,10 +145,10 @@
                     <span x-show="done && done.where === 'local'">(tersimpan di peramban ini saja)</span>.
                 </p>
                 <p class="mx-auto mt-3 max-w-md text-xs leading-relaxed text-subtle">
-                    Check-in ini langsung masuk ke Catatan Mood-mu. Catatan rasa cukup sekali sehari; sampai jumpa besok.
+                    Check-in ini langsung masuk ke riwayat mood-mu. Catatan rasa cukup sekali sehari; sampai jumpa besok.
                 </p>
                 <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('mood.index') }}" class="btn-primary">Buka Catatan Mood <x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
+                    <a href="{{ route('mood.index') }}" class="btn-primary">Lihat Riwayat Mood <x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
                 </div>
             </div>
 
@@ -163,8 +169,22 @@
                     @endforeach
                 </div>
 
+                <!-- Tag pemicu (PRD Modul 2), opsional -->
+                <p class="mt-5 mb-2 text-center text-xs text-muted">Pemicu atau tema hari ini (opsional):</p>
+                <div class="flex flex-wrap justify-center gap-2">
+                    @foreach (Mood::TRIGGERS as $trigger)
+                        <button type="button" x-on:click="toggleTrigger(@js($trigger))"
+                                x-bind:aria-pressed="selectedTriggers.includes(@js($trigger))"
+                                x-bind:class="selectedTriggers.includes(@js($trigger)) ? 'bg-tertiary-soft text-tertiary-dark ring-tertiary' : 'bg-canvas text-ink ring-line hover:bg-secondary'"
+                                class="cursor-pointer rounded-full px-3 py-1 text-xs font-medium ring-1 transition">
+                            {{ $trigger }}
+                        </button>
+                    @endforeach
+                </div>
+
                 <textarea name="note" rows="3" maxlength="500" x-model="note" class="field mt-5 resize-none"
                           placeholder="Tuliskan sepatah dua patah kata jika ingin... (opsional)"></textarea>
+                <p class="mt-1 text-right text-[11px] text-subtle"><span x-text="note.length">0</span>/500 · waktu dicatat otomatis · cukup sekali sehari</p>
 
                 <label class="mt-3 flex cursor-pointer items-center gap-2 text-xs text-muted">
                     <input type="checkbox" x-model="saveLocal" class="h-4 w-4 rounded border-line accent-[#355442]">

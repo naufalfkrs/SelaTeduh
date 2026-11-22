@@ -61,20 +61,17 @@ class PrdComplianceTest extends TestCase
 
         $this->asGuest(self::GUEST_B)->get('/mood')->assertOk()->assertDontSee('Rahasia tamu A');
         $this->asGuest(self::GUEST_B)->get('/jurnal')->assertOk()->assertDontSee('Jurnal rahasia tamu A');
-        $this->asGuest(self::GUEST_B)->delete("/mood/{$mood->id}")->assertForbidden();
         $this->asGuest(self::GUEST_B)->delete("/jurnal/{$entry->id}")->assertForbidden();
-
-        $this->asGuest(self::GUEST_A)->delete("/mood/{$mood->id}")->assertRedirect();
-        $this->assertModelMissing($mood);
+        $this->assertModelExists($mood);
     }
 
     public function test_user_cannot_change_another_users_notes_and_guest_cannot_touch_user_notes(): void
     {
         [$owner, $other] = User::factory()->count(2)->create();
-        $mood = MoodLog::create(['user_id' => $owner->id, 'mood' => 'Lelah', 'logged_date' => today()]);
+        $mood = MoodLog::create(['user_id' => $owner->id, 'mood' => 'Lelah', 'note' => 'Catatan pemilik', 'logged_date' => today()]);
         $entry = JournalEntry::create(['user_id' => $owner->id, 'content' => 'Punya pemilik']);
 
-        $this->actingAs($other)->delete("/mood/{$mood->id}")->assertForbidden();
+        $this->actingAs($other)->get('/mood')->assertOk()->assertDontSee('Catatan pemilik');
         $this->actingAs($other)->delete("/jurnal/{$entry->id}")->assertForbidden();
 
         $this->actingAs($owner)->delete("/jurnal/{$entry->id}")->assertRedirect('/jurnal');
@@ -84,9 +81,9 @@ class PrdComplianceTest extends TestCase
     public function test_guest_cannot_touch_registered_users_notes(): void
     {
         $owner = User::factory()->create();
-        $mood = MoodLog::create(['user_id' => $owner->id, 'mood' => 'Lelah', 'logged_date' => today()]);
+        $mood = MoodLog::create(['user_id' => $owner->id, 'mood' => 'Lelah', 'note' => 'Milik pemilik akun', 'logged_date' => today()]);
 
-        $this->asGuest(self::GUEST_A)->delete("/mood/{$mood->id}")->assertForbidden();
+        $this->asGuest(self::GUEST_A)->get('/mood')->assertOk()->assertDontSee('Milik pemilik akun');
         $this->assertModelExists($mood);
     }
 
@@ -162,28 +159,29 @@ class PrdComplianceTest extends TestCase
             ->assertStatus(409)
             ->assertJson(['status' => 'exists', 'mood' => 'Lelah']);
 
-        // Kirim dari form halaman Mood: juga tidak menambah catatan
+        // Kirim tanpa JavaScript: juga tidak menambah catatan
         $this->asGuest(self::GUEST_A)->post('/mood', ['mood' => 'Resah'])->assertRedirect('/mood');
         $this->assertSame(1, MoodLog::count());
 
-        // Halaman Mood menampilkan form "ubah catatan hari ini"
+        // Halaman Mood hanya riwayat: menampilkan catatan hari ini, tanpa form
         $this->asGuest(self::GUEST_A)->get('/mood')->assertOk()
             ->assertSee('Rasamu hari ini sudah tercatat.')
-            ->assertDontSee('Simpan Catatan');
+            ->assertDontSee('Simpan Catatan')
+            ->assertDontSee('Hapus catatan');
 
         // Tamu lain tetap bisa mencatat
         $this->asGuest(self::GUEST_B)->postJson('/mood', ['mood' => 'Tenang'])->assertCreated();
     }
 
-    public function test_mood_cannot_be_edited_only_deleted(): void
+    public function test_mood_history_cannot_be_edited_or_deleted(): void
     {
         $log = MoodLog::create(['guest_token' => self::GUEST_A, 'mood' => 'Lelah', 'logged_date' => today(), 'logged_at' => now()]);
 
-        $this->asGuest(self::GUEST_A)->put("/mood/{$log->id}", ['mood' => 'Tenang'])->assertMethodNotAllowed();
+        $this->asGuest(self::GUEST_A)->put("/mood/{$log->id}", ['mood' => 'Tenang'])->assertNotFound();
         $this->assertSame('Lelah', $log->fresh()->mood);
 
-        $this->asGuest(self::GUEST_A)->delete("/mood/{$log->id}")->assertRedirect();
-        $this->assertModelMissing($log);
+        $this->asGuest(self::GUEST_A)->delete("/mood/{$log->id}")->assertNotFound();
+        $this->assertModelExists($log);
     }
 
     public function test_weekly_narrative_uses_prd_rule_for_school_and_sleep_fatigue(): void

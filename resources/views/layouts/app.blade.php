@@ -30,8 +30,7 @@
     @unless (request()->routeIs('login', 'register'))
     <header x-data="{ mobileOpen: false }" class="sticky top-0 z-40 border-b border-line/70 bg-canvas/90 backdrop-blur-md">
         <div class="container-page flex h-16 items-center justify-between gap-4">
-            <a href="{{ route('home') }}" class="flex items-center gap-1.5 font-serif text-[22px] tracking-tight text-primary">
-                <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+            <a href="{{ route('home') }}" class="font-serif text-[22px] tracking-tight text-primary">
                 SelaTeduh
             </a>
 
