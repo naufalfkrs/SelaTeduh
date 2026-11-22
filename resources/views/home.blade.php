@@ -116,8 +116,9 @@
                             body: JSON.stringify({ mood: this.selectedMood, note: this.note || null }),
                         });
                         const data = await res.json();
-                        if (!res.ok) throw new Error(data.message || 'Gagal menyimpan');
-                        this.done = { mood: data.mood, time: this.nowTime(), where: 'server' };
+                        // 409 = hari ini sudah tercatat (mis. dari tab lain): tampilkan catatan yang ada
+                        if (!res.ok && res.status !== 409) throw new Error(data.message || 'Gagal menyimpan');
+                        this.done = { mood: data.mood, time: data.time || this.nowTime(), where: 'server' };
                         this.note = '';
                     } catch (e) {
                         this.status = 'error';
@@ -138,11 +139,10 @@
                     <span x-show="done && done.where === 'local'">(tersimpan di peramban ini saja)</span>.
                 </p>
                 <p class="mx-auto mt-3 max-w-md text-xs leading-relaxed text-subtle">
-                    Ini check-in cepat. Untuk menambah pemicu, catatan, atau mengubah waktunya, buka halaman Catatan Mood.
+                    Check-in cukup sekali sehari. Kalau rasamu berubah atau ingin menambah pemicu dan catatan, ubah catatan hari ini di halaman Catatan Mood.
                 </p>
                 <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('mood.index') }}" class="btn-primary">Lihat &amp; lengkapi di Catatan Mood <x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
-                    <button type="button" x-on:click="done = null" class="btn-ghost">Rasaku berubah, catat lagi</button>
+                    <a href="{{ route('mood.index') }}" class="btn-primary">Buka Catatan Mood <x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
                 </div>
             </div>
 

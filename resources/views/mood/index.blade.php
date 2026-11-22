@@ -39,10 +39,14 @@
         <div class="space-y-6 lg:col-span-8">
 
             <!-- 1. Form Catatan Mood -->
+            @php
+                // Satu catatan rasa per hari: jika hari ini sudah tercatat (dari Beranda atau sini), form ini mengubahnya
+                $todayTime = $todayLog ? ($todayLog->logged_at ?? $todayLog->created_at) : null;
+            @endphp
             <div x-data="{
-                    selectedMood: 'Tenang',
-                    selectedTriggers: [],
-                    note: '',
+                    selectedMood: @js(old('mood', $todayLog?->mood ?? 'Tenang')),
+                    selectedTriggers: @js(old('triggers', $todayLog?->triggers ?? [])),
+                    note: @js(old('note', $todayLog?->note ?? '')),
                     toggleTrigger(item) {
                         this.selectedTriggers = this.selectedTriggers.includes(item)
                             ? this.selectedTriggers.filter(i => i !== item)
@@ -55,6 +59,7 @@
                     customTime: @js(old('logged_at') !== null),
                     loggedAt: @js(old('logged_at', '')),
                     maxTime: '',
+                    minTime: '',
                     submitting: false,
                     pad(n) { return String(n).padStart(2, '0'); },
                     localInputValue(d) { return `${d.getFullYear()}-${this.pad(d.getMonth() + 1)}-${this.pad(d.getDate())}T${this.pad(d.getHours())}:${this.pad(d.getMinutes())}`; },
@@ -62,21 +67,30 @@
                         const now = new Date();
                         this.clock = `${this.pad(now.getHours())}.${this.pad(now.getMinutes())}`;
                         this.maxTime = this.localInputValue(now);
+                        this.minTime = this.maxTime.slice(0, 10) + 'T00:00';
                     },
                     enableCustomTime() { this.loggedAt = this.maxTime; this.customTime = true; },
                     init() { this.tick(); setInterval(() => this.tick(), 15000); }
                  }"
-                 class="card p-5 sm:p-7">
+                 id="catatan-hari-ini" class="card scroll-mt-24 p-5 sm:p-7">
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                        <span class="eyebrow">Langkah Sederhana</span>
-                        <h2 class="heading-md mt-1">Bagaimana rasamu saat ini?</h2>
+                        <span class="eyebrow">{{ $todayLog ? 'Catatan Hari Ini' : 'Langkah Sederhana' }}</span>
+                        <h2 class="heading-md mt-1">{{ $todayLog ? 'Rasamu hari ini sudah tercatat.' : 'Bagaimana rasamu saat ini?' }}</h2>
                     </div>
                     <span class="chip bg-canvas text-muted ring-1 ring-line">{{ now()->locale('id')->isoFormat('dddd, D MMM YYYY') }}</span>
                 </div>
 
-                <form method="POST" action="{{ route('mood.store') }}" class="mt-5" x-on:submit="submitting = true">
+                @if ($todayLog)
+                    <p class="mt-3 flex items-start gap-2 rounded-2xl bg-secondary px-4 py-3 text-xs leading-relaxed text-primary">
+                        <x-icon name="check" class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>Kamu mencatat rasa <strong>{{ $todayLog->mood }}</strong> pukul {{ $todayTime->format('H.i') }} WIB. Catatan cukup sekali sehari, tapi selama hari ini kamu masih bisa melengkapi atau mengubahnya di bawah.</span>
+                    </p>
+                @endif
+
+                <form method="POST" action="{{ $todayLog ? route('mood.update', $todayLog) : route('mood.store') }}" class="mt-5" x-on:submit="submitting = true">
                     @csrf
+                    @if ($todayLog) @method('PUT') @endif
                     <input type="hidden" name="mood" x-bind:value="selectedMood">
                     <template x-for="trigger in selectedTriggers" :key="trigger">
                         <input type="hidden" name="triggers[]" x-bind:value="trigger">
@@ -125,24 +139,30 @@
                             <span>Waktu dicatat:</span>
                             <template x-if="!customTime">
                                 <span class="flex items-center gap-2">
-                                    <span class="font-semibold text-ink" x-text="'Sekarang, ' + clock + ' WIB'"></span>
+                                    @if ($todayLog)
+                                        <span class="font-semibold text-ink">Hari ini, {{ $todayTime->format('H.i') }} WIB</span>
+                                    @else
+                                        <span class="font-semibold text-ink" x-text="'Sekarang, ' + clock + ' WIB'"></span>
+                                    @endif
                                     <button type="button" x-on:click="enableCustomTime()" class="cursor-pointer text-primary underline underline-offset-2 hover:text-primary-dark">Ubah</button>
                                 </span>
                             </template>
                             <template x-if="customTime">
                                 <span class="flex items-center gap-2">
-                                    <input type="datetime-local" name="logged_at" x-model="loggedAt" x-bind:max="maxTime" required
+                                    <input type="datetime-local" name="logged_at" x-model="loggedAt" x-bind:min="minTime" x-bind:max="maxTime" required
                                            aria-label="Sesuaikan waktu pencatatan"
                                            class="rounded-lg border border-line bg-canvas px-2 py-1 text-xs text-ink focus:border-primary focus:outline-none">
-                                    <button type="button" x-on:click="customTime = false" class="cursor-pointer text-muted underline underline-offset-2 hover:text-ink">Pakai waktu sekarang</button>
+                                    <button type="button" x-on:click="customTime = false" class="cursor-pointer text-muted underline underline-offset-2 hover:text-ink">{{ $todayLog ? 'Batal' : 'Pakai waktu sekarang' }}</button>
                                 </span>
                             </template>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button type="button" x-on:click="resetForm()" class="btn-ghost">Kosongkan</button>
+                            @unless ($todayLog)
+                                <button type="button" x-on:click="resetForm()" class="btn-ghost">Kosongkan</button>
+                            @endunless
                             <button type="submit" class="btn-primary" x-bind:disabled="submitting" x-bind:class="submitting && 'opacity-60'">
                                 <x-icon name="check" class="h-3.5 w-3.5" />
-                                <span x-text="submitting ? 'Menyimpan...' : 'Simpan Catatan'">Simpan Catatan</span>
+                                <span x-text="submitting ? 'Menyimpan...' : @js($todayLog ? 'Simpan Perubahan' : 'Simpan Catatan')">{{ $todayLog ? 'Simpan Perubahan' : 'Simpan Catatan' }}</span>
                             </button>
                         </div>
                     </div>
@@ -206,8 +226,9 @@
 
                 <div class="space-y-3">
                     @forelse ($moodLogs as $log)
-                        <div x-data="{ editing: false }" class="card p-5">
-                            <div x-show="!editing">
+                        @php $isToday = $log->logged_date->isToday(); @endphp
+                        <div class="card p-5 {{ $isToday ? 'ring-1 ring-primary-soft' : '' }}">
+                            <div>
                                 <div class="flex flex-wrap items-center justify-between gap-2">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <span class="chip {{ Mood::get($log->mood, 'soft', 'bg-secondary text-primary') }}">
@@ -222,7 +243,12 @@
                                             <x-icon name="clock" class="h-3 w-3" />
                                             {{ $log->logged_date->locale('id')->isoFormat('ddd, D MMM') }} • {{ ($log->logged_at ?? $log->created_at)->format('H:i') }} WIB
                                         </span>
-                                        <button type="button" x-on:click="editing = true" class="cursor-pointer hover:text-primary" aria-label="Ubah catatan"><x-icon name="edit" class="h-3.5 w-3.5" /></button>
+                                        {{-- Hanya catatan hari ini yang bisa diubah (lewat form di atas); hari yang sudah berlalu adalah jejak --}}
+                                        @if ($isToday)
+                                            <a href="#catatan-hari-ini" class="font-semibold text-primary hover:underline" title="Ubah lewat form Catatan Hari Ini">Hari ini · Ubah</a>
+                                        @else
+                                            <span class="flex items-center gap-1" title="Catatan hari yang sudah berlalu tidak diubah, hanya bisa dihapus"><x-icon name="lock" class="h-3 w-3" /> Jejak</span>
+                                        @endif
                                         <form method="POST" action="{{ route('mood.destroy', $log) }}" onsubmit="return confirm('Hapus catatan perasaan ini?');">
                                             @csrf
                                             @method('DELETE')
@@ -236,32 +262,6 @@
                                 @else
                                     <p class="mt-3 text-xs italic text-subtle">(Hanya check-in cepat tanpa catatan teks)</p>
                                 @endif
-                            </div>
-
-                            <div x-show="editing" x-cloak>
-                                <form method="POST" action="{{ route('mood.update', $log) }}" class="space-y-3">
-                                    @csrf
-                                    @method('PUT')
-                                    <div>
-                                        <label class="mb-1 block text-xs font-semibold text-primary">Ubah Perasaan</label>
-                                        <select name="mood" class="rounded-xl border border-line bg-canvas px-3 py-2 text-xs">
-                                            @foreach (Mood::labels() as $m)
-                                                <option value="{{ $m }}" @selected($log->mood === $m)>{{ $m }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    @foreach ($log->triggers ?? [] as $trig)
-                                        <input type="hidden" name="triggers[]" value="{{ $trig }}">
-                                    @endforeach
-                                    <div>
-                                        <label class="mb-1 block text-xs font-semibold text-primary">Catatan</label>
-                                        <textarea name="note" rows="2" class="field">{{ $log->note }}</textarea>
-                                    </div>
-                                    <div class="flex items-center justify-end gap-2">
-                                        <button type="button" x-on:click="editing = false" class="btn-ghost">Batal</button>
-                                        <button type="submit" class="btn-primary">Simpan Perubahan</button>
-                                    </div>
-                                </form>
                             </div>
                         </div>
                     @empty
